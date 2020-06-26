@@ -1,0 +1,47 @@
+This code is not mine own.
+
+First the style transfer code is a copy from [1] tch-rs. The maintainer has been an amazing
+help to me getting going and answering lots of questions. I tweaked the code to take a path for
+the styles. I also catch panics and move on. If it panics most likely do not enough cuda memory.
+
+Second after much reading about two thoughts on keeping the color during style transfer I found
+kmeans_colors. Kmeans provides a bin that can do a color transfer. I ripped that up in two a few
+functions. [2]
+
+
+I added opts
+```
+style_transfer 0.1.0
+
+USAGE:
+    style_transfer [FLAGS] [OPTIONS] --source <source> --style <style> --vgg <vgg>
+
+FLAGS:
+    -d, --debug
+    -h, --help         Prints help information
+    -k, --keepcolor
+    -V, --version      Prints version information
+
+OPTIONS:
+        --colordepth <color-depth>     [default: 40]
+    -r, --runs <runs>                  [default: 1500]
+        --source <source>
+        --style <style>
+        --depth <style-depth>          [default: 2]
+        --vgg <vgg>
+```
+depth does not work currently.
+
+colordepth is how many colors to use in the color transfer.
+
+code needs to be setup per [1] but vgg files are downloaded from:
+
+https://github.com/LaurentMazare/ocaml-torch/releases/download/v0.1-unstable/vgg16.ot
+
+
+style can be a file or a folder of images. if its a folder i run each file as the style. I like the way smaller style files look. see EXAMPLES
+
+
+[1] https://github.com/LaurentMazare/tch-rs/blob/488d7e2d71395eb864c8296a21f865e989c70b3f/examples/neural-style-transfer/main.rs
+[2] https://github.com/okaneco/kmeans-colors
+
