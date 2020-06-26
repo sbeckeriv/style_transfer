@@ -19,7 +19,7 @@ extern crate palette;
 extern crate structopt;
 extern crate tch;
 
-use anyhow::{bail, Result};
+use anyhow::{Result};
 use kmeans_colors::{
     get_kmeans, get_kmeans_hamerly, Calculate, CentroidData, Kmeans, MapColor, Sort,
 };
@@ -272,6 +272,7 @@ pub fn main() -> Result<()> {
     let style_img = opt.style;
     let content_img = opt.source;
     let weights = opt.vgg;
+    let save_runs = opt.save_runs;
     let device = Device::cuda_if_available();
     let style_path = Path::new(&style_img);
     let content_path = Path::new(&content_img);
@@ -317,7 +318,7 @@ pub fn main() -> Result<()> {
             find_colors(
                 &style_img,
                 &tmp_file,
-                color_array.split(",").map(|x| x.to_string()).collect(),
+                color_array.split(',').map(|x| x.to_string()).collect(),
                 20,
                 3,
             )
@@ -376,7 +377,7 @@ pub fn main() -> Result<()> {
                     .sum();
                 let loss = style_loss * STYLE_WEIGHT + content_loss;
                 opt_nn.backward_step(&loss);
-                if step_idx % opt.save_runs == 0 && step_idx <= runs {
+                if step_idx % save_runs == 0 && step_idx <= runs {
                     println!("{} {}", step_idx, f64::from(loss));
                     imagenet::save_image(&input_var, &format!("{}-{}.jpg", new_file, step_idx))
                         .expect("file");
