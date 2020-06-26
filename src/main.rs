@@ -19,13 +19,14 @@ extern crate palette;
 extern crate structopt;
 extern crate tch;
 
-use anyhow::{Result};
+use anyhow::Result;
 use kmeans_colors::{
     get_kmeans, get_kmeans_hamerly, Calculate, CentroidData, Kmeans, MapColor, Sort,
 };
 use palette::{Lab, Pixel, Srgb, Srgba};
 use std::error::Error;
 use std::fmt::Write;
+use std::fs;
 use std::fs::File;
 use std::io::BufWriter;
 use std::panic;
@@ -268,7 +269,9 @@ pub fn main() -> Result<()> {
     let opt = Opt::from_args();
     if opt.debug {
         println!("{:#?}", opt);
+        println!("Cuda available: {}", tch::Cuda::is_available());
     }
+
     let style_img = opt.style;
     let content_img = opt.source;
     let weights = opt.vgg;
@@ -305,6 +308,7 @@ pub fn main() -> Result<()> {
         }
     }
     for mut style_img in style_list {
+        let original_style_image = style_img.clone();
         if opt.keep_color {
             let style_path = Path::new(&style_img);
             let tmp_file = format!(
@@ -329,6 +333,7 @@ pub fn main() -> Result<()> {
 
             style_img = tmp_file;
         }
+        let debug = opt.debug;
         let result = panic::catch_unwind(|| {
             let mut net_vs = tch::nn::VarStore::new(device);
             let net = if weights.contains("19") {
@@ -346,8 +351,10 @@ pub fn main() -> Result<()> {
                 content_path.file_stem().unwrap().to_str().unwrap(),
                 style_path.file_stem().unwrap().to_str().unwrap(),
             );
-            dbg!(&new_file, &style_img);
-            let style_img = imagenet::load_image(style_img)
+            if debug {
+                dbg!(&new_file, &style_img);
+            }
+            let style_image_net = imagenet::load_image(style_img.clone())
                 .expect("Could not load style file")
                 .unsqueeze(0)
                 .to_device(device);
@@ -356,7 +363,7 @@ pub fn main() -> Result<()> {
                 .unsqueeze(0)
                 .to_device(device);
             let max_layer = STYLE_LOWER.iter().max().unwrap() + 1;
-            let style_layers = net.forward_all_t(&style_img, false, Some(max_layer));
+            let style_layers = net.forward_all_t(&style_image_net, false, Some(max_layer));
             let content_layers = net.forward_all_t(&content_img, false, Some(max_layer));
 
             let vs = nn::VarStore::new(device);
@@ -389,6 +396,9 @@ pub fn main() -> Result<()> {
         });
         if result.is_err() {
             println!("error");
+        }
+        if original_style_image != style_img {
+            fs::remove_file(style_img).expect("Could not delete style image");
         }
     }
     Ok(())
