@@ -1,18 +1,69 @@
 use anyhow::Result;
+use image::{imageops, GenericImageView, ImageBuffer, RgbImage};
 use kmeans_colors::{
     get_kmeans, get_kmeans_hamerly, Calculate, CentroidData, Kmeans, MapColor, Sort,
 };
 use palette::{Lab, Pixel, Srgb, Srgba};
 use std::error::Error;
 use std::fmt::Write;
-use std::fs;
 use std::fs::File;
 use std::io::BufWriter;
-use std::panic;
-use std::path::{Path, PathBuf};
-use structopt::StructOpt;
-use tch::vision::{imagenet, vgg};
-use tch::{nn, nn::OptimizerConfig, Device, Tensor};
+use std::path::PathBuf;
+use tch::Tensor;
+
+const SPLIT_SIZE: u32 = 200;
+pub fn paste(file: &str, base: &str) {
+    let mut img = image::open(file).unwrap();
+    let dimensions = img.dimensions();
+    let size = SPLIT_SIZE;
+    let xs = (dimensions.0 / size) + 1;
+    let ys = (dimensions.1 / size) + 1;
+    for x in 0..xs {
+        for y in 0..ys {
+            let mut on_top = image::open(file).unwrap();
+            image::imageops::overlay(&mut img, &on_top, x * size, y * size);
+        }
+    }
+    img.save(format!("final-{}", file));
+}
+
+pub fn save_crops(file: &str) -> (u32, u32) {
+    let size = SPLIT_SIZE;
+    let mut img = image::open(file).unwrap();
+    let dimensions = img.dimensions();
+    let xs = (dimensions.0 / size) + 1;
+    let ys = (dimensions.1 / size) + 1;
+    for x in 0..xs {
+        for y in 0..ys {
+            let subimg = imageops::crop(&mut img, x * size, y * size, size, size);
+            subimg.to_image().save(&format!("{}-{}-{}", x, y, file));
+        }
+    }
+    (xs, ys)
+}
+
+pub fn save_crops_style(content_file: &str, style_file: &str) {
+    let size = SPLIT_SIZE;
+    let mut img_content = image::open(content_file).unwrap();
+    let mut img_style = image::open(style_file).unwrap();
+    let dimensions = img_content.dimensions();
+    let mut img_style = imageops::resize(
+        &img_style,
+        dimensions.0,
+        dimensions.1,
+        image::imageops::FilterType::Lanczos3,
+    );
+    let xs = (dimensions.0 / size) + 1;
+    let ys = (dimensions.1 / size) + 1;
+    for x in 0..xs {
+        for y in 0..ys {
+            let subimg = imageops::crop(&mut img_style, x * size, y * size, size, size);
+            subimg
+                .to_image()
+                .save(&format!("{}-{}-{}", x, y, style_file));
+        }
+    }
+}
 
 /// Parse hex string to Rgb color.
 pub fn parse_color(c: &str) -> Result<Srgb<u8>, &str> {

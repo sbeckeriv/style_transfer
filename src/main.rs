@@ -130,72 +130,91 @@ pub fn main() -> Result<()> {
             style_img = tmp_file;
         }
         let debug = opt.debug;
-        let result = panic::catch_unwind(|| {
-            let mut net_vs = tch::nn::VarStore::new(device);
-            let net = if weights.contains("19") {
-                vgg::vgg19(&net_vs.root(), imagenet::CLASS_COUNT)
-            } else {
-                vgg::vgg16(&net_vs.root(), imagenet::CLASS_COUNT)
-            };
-            net_vs
-                .load(weights.clone())
-                .expect("Could not load weights file");
-            net_vs.freeze();
-            let style_path = Path::new(&style_img);
-            let new_file = format!(
-                "{}-{}",
-                content_path.file_stem().unwrap().to_str().unwrap(),
-                style_path.file_stem().unwrap().to_str().unwrap(),
-            );
-            if debug {
-                dbg!(&new_file, &style_img);
-            }
-            let style_image_net = imagenet::load_image(style_img.clone())
-                .expect("Could not load style file")
-                .unsqueeze(0)
-                .to_device(device);
-            let content_img = imagenet::load_image(content_img.clone())
-                .expect("Could not load content file")
-                .unsqueeze(0)
-                .to_device(device);
-            let max_layer = STYLE_LOWER.iter().max().unwrap() + 1;
-            let style_layers = net.forward_all_t(&style_image_net, false, Some(max_layer));
-            let content_layers = net.forward_all_t(&content_img, false, Some(max_layer));
 
-            let vs = nn::VarStore::new(device);
-            let input_var = vs.root().var_copy("img", &content_img);
-            let mut opt_nn = nn::Adam::default()
-                .build(&vs, LEARNING_RATE)
-                .expect("learrate");
+        let counts = save_crops(&content_img);
+        save_crops_style(&content_img, &style_img);
 
-            for step_idx in 1..(1 + runs) {
-                let input_layers = net.forward_all_t(&input_var, false, Some(max_layer));
-                let style_loss: Tensor = STYLE_LOWER
-                    .iter()
-                    .map(|&i| style_loss(&input_layers[i], &style_layers[i]))
-                    .sum();
-                let content_loss: Tensor = CONTENT_INDEXES
-                    .iter()
-                    .map(|&i| input_layers[i].mse_loss(&content_layers[i], tch::Reduction::Mean))
-                    .sum();
-                let loss = style_loss * STYLE_WEIGHT + content_loss;
-                opt_nn.backward_step(&loss);
-                if step_idx % save_runs == 0 && step_idx <= runs {
-                    println!("{} {}", step_idx, f64::from(loss));
-                    imagenet::save_image(&input_var, &format!("{}-{}.jpg", new_file, step_idx))
+        let new_file = format!(
+            "{}-{}",
+            content_path.file_stem().unwrap().to_str().unwrap(),
+            style_path.file_stem().unwrap().to_str().unwrap(),
+        );
+        for x in 0..counts.0 {
+            for y in 0..counts.1 {
+                let result = panic::catch_unwind(|| {
+                    let mut net_vs = tch::nn::VarStore::new(device);
+                    let net = if weights.contains("19") {
+                        vgg::vgg19(&net_vs.root(), imagenet::CLASS_COUNT)
+                    } else {
+                        vgg::vgg16(&net_vs.root(), imagenet::CLASS_COUNT)
+                    };
+                    net_vs
+                        .load(weights.clone())
+                        .expect("Could not load weights file");
+                    net_vs.freeze();
+
+                    let style_path = Path::new(&style_img);
+                    let split_content = format!("{}-{}-{}", x, y, content_img);
+                    let split_style = format!("{}-{}-{}", x, y, style_img);
+
+                    if debug {
+                        dbg!(&new_file, &style_img);
+                    }
+                    let style_image_net = imagenet::load_image(split_style.clone())
+                        .expect("Could not load style file")
+                        .unsqueeze(0)
+                        .to_device(device);
+                    let content_img = imagenet::load_image(split_content.clone())
+                        .expect("Could not load content file")
+                        .unsqueeze(0)
+                        .to_device(device);
+                    let max_layer = STYLE_LOWER.iter().max().unwrap() + 1;
+                    let style_layers = net.forward_all_t(&style_image_net, false, Some(max_layer));
+                    let content_layers = net.forward_all_t(&content_img, false, Some(max_layer));
+
+                    let vs = nn::VarStore::new(device);
+                    let input_var = vs.root().var_copy("img", &content_img);
+                    let mut opt_nn = nn::Adam::default()
+                        .build(&vs, LEARNING_RATE)
+                        .expect("learrate");
+
+                    for step_idx in 1..(1 + runs) {
+                        let input_layers = net.forward_all_t(&input_var, false, Some(max_layer));
+                        let style_loss: Tensor = STYLE_LOWER
+                            .iter()
+                            .map(|&i| style_loss(&input_layers[i], &style_layers[i]))
+                            .sum();
+                        let content_loss: Tensor = CONTENT_INDEXES
+                            .iter()
+                            .map(|&i| {
+                                input_layers[i].mse_loss(&content_layers[i], tch::Reduction::Mean)
+                            })
+                            .sum();
+                        let loss = style_loss * STYLE_WEIGHT + content_loss;
+                        opt_nn.backward_step(&loss);
+                        if step_idx % save_runs == 0 && step_idx <= runs {
+                            println!("{} {}", step_idx, f64::from(loss));
+                            imagenet::save_image(
+                                &input_var,
+                                &format!("{}-{}-{}-{}.jpg", x, y, new_file, step_idx),
+                            )
+                            .expect("file");
+                        }
+                    }
+
+                    println!("done ");
+                    imagenet::save_image(&input_var, &format!("{}-{}-{}-done.jpg", x, y, new_file))
                         .expect("file");
+                });
+                if result.is_err() {
+                    println!("error");
+                }
+                if original_style_image != style_img {
+                    //fs::remove_file(style_img).expect("Could not delete style image");
                 }
             }
-
-            println!("done ");
-            imagenet::save_image(&input_var, &format!("{}-done.jpg", new_file)).expect("file");
-        });
-        if result.is_err() {
-            println!("error");
         }
-        if original_style_image != style_img {
-            fs::remove_file(style_img).expect("Could not delete style image");
-        }
+        paste(&content_img, &format!("{}-done.jpg", new_file));
     }
     Ok(())
 }
