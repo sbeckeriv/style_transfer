@@ -113,8 +113,8 @@ pub fn save_image(
     if title.extension().unwrap() == "png" {
         let encoder = image::png::PNGEncoder::new_with_quality(
             w,
-            image::png::CompressionType::Best,
-            image::png::FilterType::NoFilter,
+            image::codecs::png::CompressionType::Best,
+            image::codecs::png::FilterType::NoFilter,
         );
 
         // Clean up if file is created but there's a problem writing to it
