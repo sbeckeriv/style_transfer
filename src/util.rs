@@ -13,14 +13,16 @@ use tch::Tensor;
 
 const SPLIT_SIZE: u32 = 200;
 pub fn paste(file: &str, base: &str) {
-    let mut img = image::open(file).unwrap();
+    let mut img = image::open(base).unwrap();
     let dimensions = img.dimensions();
     let size = SPLIT_SIZE;
     let xs = (dimensions.0 / size) + 1;
     let ys = (dimensions.1 / size) + 1;
     for x in 0..xs {
         for y in 0..ys {
-            let mut on_top = image::open(file).unwrap();
+            let part = &format!("{}-{}-{}", x, y, file);
+            dbg!(part);
+            let mut on_top = image::open(part).unwrap();
             image::imageops::overlay(&mut img, &on_top, x * size, y * size);
         }
     }
