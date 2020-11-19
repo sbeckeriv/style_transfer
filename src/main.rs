@@ -67,7 +67,6 @@ pub fn main() -> Result<()> {
         println!("{:#?}", opt);
         println!("Cuda available: {}", tch::Cuda::is_available());
     }
-
     let style_img = opt.style;
     let content_img = opt.source;
     let weights = opt.vgg;
@@ -214,7 +213,8 @@ pub fn main() -> Result<()> {
                 }
             }
         }
-        paste(&content_img, &format!("{}-done.jpg", new_file));
+
+        paste(&format!("{}-done.jpg", new_file), &content_img);
     }
     Ok(())
 }

@@ -11,7 +11,7 @@ use std::io::BufWriter;
 use std::path::PathBuf;
 use tch::Tensor;
 
-const SPLIT_SIZE: u32 = 200;
+const SPLIT_SIZE: u32 = 600;
 pub fn paste(file: &str, base: &str) {
     let mut img = image::open(base).unwrap();
     let dimensions = img.dimensions();
