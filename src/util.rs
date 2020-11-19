@@ -8,6 +8,7 @@ use std::error::Error;
 use std::fmt::Write;
 use std::fs::File;
 use std::io::BufWriter;
+use std::path::Path;
 use std::path::PathBuf;
 use tch::Tensor;
 
@@ -37,8 +38,13 @@ pub fn save_crops(file: &str) -> (u32, u32) {
     let ys = (dimensions.1 / size) + 1;
     for x in 0..xs {
         for y in 0..ys {
+            let split_out = format!("{}-{}-{}", x, y, file);
+            if Path::new(&split_out).exists() {
+                dbg!(split_out);
+                continue;
+            }
             let subimg = imageops::crop(&mut img, x * size, y * size, size, size);
-            subimg.to_image().save(&format!("{}-{}-{}", x, y, file));
+            subimg.to_image().save(&split_out);
         }
     }
     (xs, ys)
@@ -59,10 +65,13 @@ pub fn save_crops_style(content_file: &str, style_file: &str) {
     let ys = (dimensions.1 / size) + 1;
     for x in 0..xs {
         for y in 0..ys {
+            let split_out = format!("{}-{}-{}", x, y, style_file);
+            if Path::new(&split_out).exists() {
+                dbg!(split_out);
+                continue;
+            }
             let subimg = imageops::crop(&mut img_style, x * size, y * size, size, size);
-            subimg
-                .to_image()
-                .save(&format!("{}-{}-{}", x, y, style_file));
+            subimg.to_image().save(&split_out);
         }
     }
 }

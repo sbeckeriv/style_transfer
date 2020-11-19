@@ -140,6 +140,11 @@ pub fn main() -> Result<()> {
         );
         for x in 0..counts.0 {
             for y in 0..counts.1 {
+                let split_out = format!("{}-{}-{}-done.jpg", x, y, new_file);
+                if Path::new(&split_out).exists() {
+                    dbg!(split_out);
+                    continue;
+                }
                 let result = panic::catch_unwind(|| {
                     let mut net_vs = tch::nn::VarStore::new(device);
                     let net = if weights.contains("19") {
@@ -151,7 +156,6 @@ pub fn main() -> Result<()> {
                         .load(weights.clone())
                         .expect("Could not load weights file");
                     net_vs.freeze();
-
                     let style_path = Path::new(&style_img);
                     let split_content = format!("{}-{}-{}", x, y, content_img);
                     let split_style = format!("{}-{}-{}", x, y, style_img);
@@ -202,8 +206,7 @@ pub fn main() -> Result<()> {
                     }
 
                     println!("done ");
-                    imagenet::save_image(&input_var, &format!("{}-{}-{}-done.jpg", x, y, new_file))
-                        .expect("file");
+                    imagenet::save_image(&input_var, &split_out).expect("file");
                 });
                 if result.is_err() {
                     println!("error");
