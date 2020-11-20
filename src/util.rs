@@ -40,7 +40,6 @@ pub fn save_crops(file: &str) -> (u32, u32) {
         for y in 0..ys {
             let split_out = format!("{}-{}-{}", x, y, file);
             if Path::new(&split_out).exists() {
-                dbg!(split_out);
                 continue;
             }
             let subimg = imageops::crop(&mut img, x * size, y * size, size, size);
@@ -48,6 +47,17 @@ pub fn save_crops(file: &str) -> (u32, u32) {
         }
     }
     (xs, ys)
+}
+
+pub fn resize(style_file: &str, x: u32, y: u32) {
+    let split_out = format!("{}-{}-{}", x, y, style_file);
+    if !Path::new(&split_out).exists() {
+        let mut img_style = image::open(style_file).unwrap();
+        let mut img_style =
+            imageops::resize(&img_style, x, y, image::imageops::FilterType::Lanczos3);
+        img_style.save(split_out);
+    } else {
+    }
 }
 
 pub fn save_crops_style(content_file: &str, style_file: &str) {

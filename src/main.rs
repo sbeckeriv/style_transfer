@@ -27,6 +27,7 @@ use structopt::StructOpt;
 use tch::vision::{imagenet, vgg};
 use tch::{nn, nn::OptimizerConfig, Device, Tensor};
 
+use image::{imageops, GenericImageView, ImageBuffer, RgbImage};
 mod util;
 use util::*;
 
@@ -131,7 +132,7 @@ pub fn main() -> Result<()> {
         let debug = opt.debug;
 
         let counts = save_crops(&content_img);
-        save_crops_style(&content_img, &style_img);
+        //save_crops_style(&content_img, &style_img);
 
         let new_file = format!(
             "{}-{}",
@@ -145,6 +146,7 @@ pub fn main() -> Result<()> {
                     dbg!(split_out);
                     continue;
                 }
+
                 let result = panic::catch_unwind(|| {
                     let mut net_vs = tch::nn::VarStore::new(device);
                     let net = if weights.contains("19") {
@@ -158,7 +160,11 @@ pub fn main() -> Result<()> {
                     net_vs.freeze();
                     let style_path = Path::new(&style_img);
                     let split_content = format!("{}-{}-{}", x, y, content_img);
-                    let split_style = format!("{}-{}-{}", x, y, style_img);
+
+                    let mut img = image::open(&split_content).unwrap();
+                    let dimensions = img.dimensions();
+                    resize(&style_img, dimensions.0, dimensions.1);
+                    let split_style = format!("{}-{}-{}", dimensions.0, dimensions.1, style_img);
 
                     if debug {
                         dbg!(&new_file, &style_img);
