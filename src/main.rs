@@ -167,17 +167,17 @@ pub fn main() -> Result<()> {
                     let mut img = image::open(&split_content).unwrap();
                     let dimensions = img.dimensions();
                     resize(&style_img, dimensions.0, dimensions.1);
-                    let split_style = format!("{}-{}-{}", dimensions.0, dimensions.1, style_img);
+                    let split_style = size_filename(dimensions.0, dimensions.1, &style_img);
 
                     if debug {
                         dbg!(&new_file, &style_img);
                     }
                     let style_image_net = imagenet::load_image(split_style.clone())
-                        .expect("Could not load style file")
+                        .expect(&format!("Could not load style file {}", split_style))
                         .unsqueeze(0)
                         .to_device(device);
                     let content_img = imagenet::load_image(split_content.clone())
-                        .expect("Could not load content file")
+                        .expect(&format!("Could not load content file {}", split_content))
                         .unsqueeze(0)
                         .to_device(device);
                     let max_layer = STYLE_LOWER.iter().max().unwrap() + 1;
@@ -208,7 +208,7 @@ pub fn main() -> Result<()> {
                             println!("{} {}", step_idx, f64::from(loss));
                             imagenet::save_image(
                                 &input_var,
-                                &format!("{}-{}-{}-{}.jpg", x, y, new_file, step_idx),
+                                &size_filename(x, y, &format!("{}-{}.jpg", new_file, step_idx)),
                             )
                             .expect("file");
                         }
