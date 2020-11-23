@@ -12,11 +12,10 @@ use std::path::Path;
 use std::path::PathBuf;
 use tch::Tensor;
 
-const SPLIT_SIZE: u32 = 600;
-pub fn paste(file: &str, base: &str) {
+pub fn paste(file: &str, base: &str, split_size: u32) {
     let mut img = image::open(base).unwrap();
     let dimensions = img.dimensions();
-    let size = SPLIT_SIZE;
+    let size = split_size;
     let xs = (dimensions.0 / size) + 1;
     let ys = (dimensions.1 / size) + 1;
     for x in 0..xs {
@@ -30,8 +29,8 @@ pub fn paste(file: &str, base: &str) {
     img.save(format!("final-{}", file));
 }
 
-pub fn save_crops(file: &str) -> (u32, u32) {
-    let size = SPLIT_SIZE;
+pub fn save_crops(file: &str, split_size: u32) -> (u32, u32) {
+    let size = split_size;
     let mut img = image::open(file).unwrap();
     let dimensions = img.dimensions();
     let xs = (dimensions.0 / size) + 1;
@@ -60,8 +59,8 @@ pub fn resize(style_file: &str, x: u32, y: u32) {
     }
 }
 
-pub fn save_crops_style(content_file: &str, style_file: &str) {
-    let size = SPLIT_SIZE;
+pub fn save_crops_style(content_file: &str, style_file: &str, split_size: u32) {
+    let size = split_size;
     let mut img_content = image::open(content_file).unwrap();
     let mut img_style = image::open(style_file).unwrap();
     let dimensions = img_content.dimensions();

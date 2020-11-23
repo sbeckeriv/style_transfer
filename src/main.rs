@@ -42,6 +42,8 @@ const CONTENT_INDEXES: [usize; 2] = [7, 10];
 
 #[derive(StructOpt, Debug)]
 pub struct Opt {
+    #[structopt(long = "splitsize", default_value = "800")]
+    split_size: u32,
     #[structopt(short = "r", long = "runs", default_value = "1500")]
     runs: usize,
     #[structopt(long = "save_runs", default_value = "1000")]
@@ -69,6 +71,7 @@ pub fn main() -> Result<()> {
         println!("Cuda available: {}", tch::Cuda::is_available());
     }
     let style_img = opt.style;
+    let split_size = opt.split_size;
     let content_img = opt.source;
     let weights = opt.vgg;
     let save_runs = opt.save_runs;
@@ -131,8 +134,8 @@ pub fn main() -> Result<()> {
         }
         let debug = opt.debug;
 
-        let counts = save_crops(&content_img);
-        //save_crops_style(&content_img, &style_img);
+        let counts = save_crops(&content_img, split_size);
+        //save_crops_style(&content_img, &style_img, split_size);
 
         let new_file = format!(
             "{}-{}",
@@ -223,7 +226,7 @@ pub fn main() -> Result<()> {
             }
         }
 
-        paste(&format!("{}-done.jpg", new_file), &content_img);
+        paste(&format!("{}-done.jpg", new_file), &content_img, split_size);
     }
     Ok(())
 }
