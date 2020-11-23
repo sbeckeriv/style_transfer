@@ -12,6 +12,15 @@ use std::path::Path;
 use std::path::PathBuf;
 use tch::Tensor;
 
+pub fn size_filename(x: u32, y: u32, file: &str) -> String {
+    let path = Path::new(&file);
+    let filename = path.file_name().unwrap();
+    let base = path.parent().unwrap();
+
+    let new_filename = format!("{}-{}-{}", x, y, filename.to_str().unwrap());
+    base.join(new_filename).to_str().unwrap().to_string()
+}
+
 pub fn paste(file: &str, base: &str, split_size: u32) {
     let mut img = image::open(base).unwrap();
     let dimensions = img.dimensions();
@@ -20,9 +29,9 @@ pub fn paste(file: &str, base: &str, split_size: u32) {
     let ys = (dimensions.1 / size) + 1;
     for x in 0..xs {
         for y in 0..ys {
-            let part = &format!("{}-{}-{}", x, y, file);
+            let part = &size_filename(x, y, file);
             dbg!(part);
-            let mut on_top = image::open(part).unwrap();
+            let on_top = image::open(part).unwrap();
             image::imageops::overlay(&mut img, &on_top, x * size, y * size);
         }
     }
@@ -37,7 +46,7 @@ pub fn save_crops(file: &str, split_size: u32) -> (u32, u32) {
     let ys = (dimensions.1 / size) + 1;
     for x in 0..xs {
         for y in 0..ys {
-            let split_out = format!("{}-{}-{}", x, y, file);
+            let split_out = size_filename(x, y, file);
             if Path::new(&split_out).exists() {
                 continue;
             }
@@ -49,7 +58,7 @@ pub fn save_crops(file: &str, split_size: u32) -> (u32, u32) {
 }
 
 pub fn resize(style_file: &str, x: u32, y: u32) {
-    let split_out = format!("{}-{}-{}", x, y, style_file);
+    let split_out = size_filename(x, y, style_file);
     if !Path::new(&split_out).exists() {
         let mut img_style = image::open(style_file).unwrap();
         let mut img_style =
@@ -74,7 +83,7 @@ pub fn save_crops_style(content_file: &str, style_file: &str, split_size: u32) {
     let ys = (dimensions.1 / size) + 1;
     for x in 0..xs {
         for y in 0..ys {
-            let split_out = format!("{}-{}-{}", x, y, style_file);
+            let split_out = size_filename(x, y, style_file);
             if Path::new(&split_out).exists() {
                 dbg!(split_out);
                 continue;

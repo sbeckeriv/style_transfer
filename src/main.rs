@@ -144,7 +144,7 @@ pub fn main() -> Result<()> {
         );
         for x in 0..counts.0 {
             for y in 0..counts.1 {
-                let split_out = format!("{}-{}-{}-done.jpg", x, y, new_file);
+                let split_out = size_filename(x, y, &format!("{}-done.jpg", new_file));
                 if Path::new(&split_out).exists() {
                     dbg!(split_out);
                     continue;
@@ -162,7 +162,7 @@ pub fn main() -> Result<()> {
                         .expect("Could not load weights file");
                     net_vs.freeze();
                     let style_path = Path::new(&style_img);
-                    let split_content = format!("{}-{}-{}", x, y, content_img);
+                    let split_content = size_filename(x, y, &content_img);
 
                     let mut img = image::open(&split_content).unwrap();
                     let dimensions = img.dimensions();
